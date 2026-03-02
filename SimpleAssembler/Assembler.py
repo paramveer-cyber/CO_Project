@@ -17,12 +17,23 @@ def assemble(lines):
         line = line.strip()
         if not line:
             continue
+
+
         firstSeparation = line.split(maxsplit=1)
         instr, rest = firstSeparation
+        if instr not in COMMANDS:
+            print(f"Unsupported instruction: {instr}")
+            outputLines.append(f"Unsupported instruction: {instr}")
+            continue
         rd, rs1, rs2 = rest.split(",")
+        # error support added:
+        if rd not in REGISTERS or rs1 not in REGISTERS or rs2 not in REGISTERS:
+            print("Unsupported register used!")
+            outputLines.append("Unsupported register used!")
+            continue
         funct7, funct3 = R_TYPE[instr]
         binary = (funct7 + reg_to_bin(rs2) + reg_to_bin(rs1) + funct3 + reg_to_bin(rd) + "0110011")
         outputLines.append(binary)
-        
+    #Rtype done =====
     return outputLines
 
