@@ -17,7 +17,12 @@ def assemble(lines):
         line = line.strip()
         if not line:
             continue
-        
+        firstSeparation = line.split(maxsplit=1)
+        instr, rest = firstSeparation
+        rd, rs1, rs2 = rest.split(",")
+        funct7, funct3 = R_TYPE[instr]
+        binary = (funct7 + reg_to_bin(rs2) + reg_to_bin(rs1) + funct3 + reg_to_bin(rd) + "0110011")
+        outputLines.append(binary)
         
     return outputLines
 
