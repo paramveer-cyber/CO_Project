@@ -31,9 +31,50 @@ def assemble(lines):
             print("Unsupported register used!")
             outputLines.append("Unsupported register used!")
             continue
-        funct7, funct3 = R_TYPE[instr]
-        binary = (funct7 + reg_to_bin(rs2) + reg_to_bin(rs1) + funct3 + reg_to_bin(rd) + "0110011")
-        outputLines.append(binary)
-    #Rtype done =====
+
+        #R-type done
+        if instr in R_TYPE:
+            rd, rs1, rs2 = rest.split(",")
+            if rd not in REGISTERS or rs1 not in REGISTERS or rs2 not in REGISTERS:
+                print("Unsupported register used!")
+                outputLines.append("Unsupported register used!")
+                continue
+            funct7, funct3 = R_TYPE[instr]
+            binary = (funct7 + reg_to_bin(rs2) + reg_to_bin(rs1) + funct3 + reg_to_bin(rd) + "0110011")
+            outputLines.append(binary)
+
+        #S-type 
+        elif instr in S_TYPE:
+            funct3, opcode = S_TYPE[instr]
+            try:
+                rs2, addr_part = rest.split(",")
+                imm_str, rs1 = addr_part.strip().replace(")", "").split("(")
+                rs1 = rs1.strip()
+                imm = int(imm_str)
+            except:
+                outputLines.append("Invalid S-type format")
+                continue
+
+            if rs1 not in REGISTERS or rs2 not in REGISTERS:
+                outputLines.append("Unsupported register used!")
+                continue
+
+            if imm < -2048 or imm > 2047:
+                outputLines.append("Immediate out of 12-bit signed range")
+                continue
+
+            imm_bin = format(imm & 0b111111111111, "012b") 
+            binary = (
+                imm_bin[:7]  +
+                reg_to_bin(rs2) +
+                reg_to_bin(rs1) +
+                funct3 +
+                imm_bin[7:]   +
+                opcode
+            )
+
+            outputLines.append(binary)
+        
+
     return outputLines
 
