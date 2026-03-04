@@ -3,9 +3,11 @@ REGISTERS = {"zero": 0, "ra": 1, "sp": 2, "gp": 3, "tp": 4,"t0": 5, "t1": 6, "t2
 for i in range(32):
     REGISTERS[f"x{i}"] = i
 
-COMMANDS = ["add", "sub", "sll", "slt", "sltu", "xor", "srl", "or", "and"]
+COMMANDS = ["add", "sub", "sll", "slt", "sltu", "xor", "srl", "or", "and", "lw", "addi", "sltiu", "jalr", "sw","beq","bne","bge","bgeu","blt","bltu"]
 
 R_TYPE = {"add":  ("0000000", "000"),"sub":  ("0100000", "000"),"sll":  ("0000000", "001"),"slt":  ("0000000", "010"),"sltu": ("0000000", "011"),"xor":  ("0000000", "100"),"srl":  ("0000000", "101"),"or": ("0000000", "110"),"and": ("0000000", "111")}
+
+I_TYPE = {"lw": ("010","0000011"), "addi": ("000", "0010011"), "sltiu": ("011","0010011"), "jalr": ("000", "1100111")}
 
 S_TYPE = {"sw": ("010", "0100011")}
 
@@ -76,7 +78,29 @@ def assemble(lines):
             )
 
             outputLines.append(binary)
-        
+        #i type added, try except baad m
+        elif instr in I_TYPE:
+            funct3, opcode = I_TYPE[instr]
+
+            if instr == "lw":
+                rd, addr_part = rest.split(",")
+                imm_str, rs1 = addr_part.strip().replace(")", "").split("(")
+                rs1 = rs1.strip()
+                imm = int(imm_str, 0)
+
+            else:
+                rd, rs1, imm_str = rest.split(",")
+                imm = int(imm_str.strip(), 0)
+            imm_bin = format(imm & 0xFFF, "012b")
+            binary = (
+                imm_bin +
+                reg_to_bin(rs1) +
+                funct3 +
+                reg_to_bin(rd) +
+                opcode
+            )
+
+            outputLines.append(binary)
 
     return outputLines
 
