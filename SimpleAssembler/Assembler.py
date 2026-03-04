@@ -21,22 +21,18 @@ def assemble(lines):
         line = line.strip()
         if not line:
             continue
-
-
+        
         firstSeparation = line.split(maxsplit=1)
+        if len(firstSeparation) != 2:
+            print("Invalid Input Format!")
+            continue
         instr, rest = firstSeparation
+        
         if instr not in COMMANDS:
             print(f"Unsupported instruction: {instr}")
             outputLines.append(f"Unsupported instruction: {instr}")
             continue
-        rd, rs1, rs2 = rest.split(",")
-        # error support added:
-        if rd not in REGISTERS or rs1 not in REGISTERS or rs2 not in REGISTERS:
-            print("Unsupported register used!")
-            outputLines.append("Unsupported register used!")
-            continue
 
-        #R-type done
         if instr in R_TYPE:
             rd, rs1, rs2 = rest.split(",")
             if rd not in REGISTERS or rs1 not in REGISTERS or rs2 not in REGISTERS:
@@ -46,8 +42,7 @@ def assemble(lines):
             funct7, funct3 = R_TYPE[instr]
             binary = (funct7 + reg_to_bin(rs2) + reg_to_bin(rs1) + funct3 + reg_to_bin(rd) + "0110011")
             outputLines.append(binary)
-
-        #S-type 
+        
         elif instr in S_TYPE:
             funct3, opcode = S_TYPE[instr]
             try:
@@ -78,19 +73,33 @@ def assemble(lines):
             )
 
             outputLines.append(binary)
-        #i type added, try except baad m
+
         elif instr in I_TYPE:
             funct3, opcode = I_TYPE[instr]
 
-            if instr == "lw":
-                rd, addr_part = rest.split(",")
-                imm_str, rs1 = addr_part.strip().replace(")", "").split("(")
-                rs1 = rs1.strip()
-                imm = int(imm_str, 0)
+            try:
+                if instr == "lw":
+                    rd, addr_part = rest.split(",")
+                    imm_str, rs1 = addr_part.strip().replace(")", "").split("(")
+                    rs1 = rs1.strip()
+                    imm = int(imm_str, 0)
 
-            else:
-                rd, rs1, imm_str = rest.split(",")
-                imm = int(imm_str.strip(), 0)
+                else:
+                    rd, rs1, imm_str = rest.split(",")
+                    imm = int(imm_str.strip(), 0)
+
+            except:
+                outputLines.append("Invalid I-type format")
+                continue
+
+            if rd not in REGISTERS or rs1 not in REGISTERS:
+                outputLines.append("Unsupported register used!")
+                continue
+
+            if imm < -2048 or imm > 2047:
+                outputLines.append("Immediate out of 12-bit signed range")
+                continue
+
             imm_bin = format(imm & 0xFFF, "012b")
             binary = (
                 imm_bin +
@@ -101,6 +110,3 @@ def assemble(lines):
             )
 
             outputLines.append(binary)
-
-    return outputLines
-
