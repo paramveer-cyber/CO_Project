@@ -13,6 +13,9 @@ S_TYPE = {"sw": ("010", "0100011")}
 
 B_type={"beq":("000","1100011"),"bne":("001","1100011"),"blt":("100","1100011"),"bge":("101","1100011"),"bltu":("110","1100011"),"bgeu":("111","1100011")}
 
+J_type={"jal":("1101111")}
+
+
 def reg_to_bin(reg):
     return format(REGISTERS[reg], "05b")
 
@@ -145,6 +148,29 @@ def assemble(lines):
                 imm_bin[1]+
                 opcode
             )
+            outputLines.append(binary)
+
+        elif instr in J_type:
+            opcode = J_type[instr]
+
+            rd, imm_str = [x.strip() for x in rest.split(",")]
+            imm = int(imm_str,0)
+
+            if imm < -1048576 or imm > 1048574:
+                outputLines.append("Immediate out of J-type range")
+                continue
+
+            imm_bin = format(imm & 0x1FFFFF, "021b")
+
+            binary = (
+                imm_bin[0] +
+                imm_bin[10:20] +
+                imm_bin[9] +
+                imm_bin[1:9] +
+                reg_to_bin(rd) +
+                opcode
+            )
+
             outputLines.append(binary)
 
     return outputLines
