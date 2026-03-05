@@ -11,8 +11,7 @@ I_TYPE = {"lw": ("010","0000011"), "addi": ("000", "0010011"), "sltiu": ("011","
 
 S_TYPE = {"sw": ("010", "0100011")}
 
-B_type={"beq":("000","1100011"),"bne":("001","1100011"),"bge":("100","1100011"),"bgeu":("101","1100011"),"blt":("110","1100011"),"bltu":("111","1100011")}
-
+B_type={"beq":("000","1100011"),"bne":("001","1100011"),"blt":("100","1100011"),"bge":("101","1100011"),"bltu":("110","1100011"),"bgeu":("111","1100011")}
 
 def reg_to_bin(reg):
     return format(REGISTERS[reg], "05b")
@@ -37,7 +36,7 @@ def assemble(lines):
             continue
 
         if instr in R_TYPE:
-            rd, rs1, rs2 = rest.split(",")
+            rd, rs1, rs2 = [x.strip() for x in rest.split(",")]
             if rd not in REGISTERS or rs1 not in REGISTERS or rs2 not in REGISTERS:
                 print("Unsupported register used!")
                 outputLines.append("Unsupported register used!")
@@ -49,12 +48,12 @@ def assemble(lines):
         elif instr in S_TYPE:
             funct3, opcode = S_TYPE[instr]
             try:
-            rs1,rs2,imm_str=rest.split(",")
-            imm=int(imm_str,0)
                 rs2, addr_part = rest.split(",")
+                rs2 = rs2.strip()
+
                 imm_str, rs1 = addr_part.strip().replace(")", "").split("(")
                 rs1 = rs1.strip()
-                imm = int(imm_str)
+                imm = int(imm_str,0)
             except:
                 outputLines.append("Invalid S-type format")
                 continue
@@ -135,7 +134,7 @@ def assemble(lines):
                 outputLines.append("Immediate out of B-type range space")
                 continue
 
-            imm_bin = format(imm & 0xFFF, "012b")
+            imm_bin = format(imm & 0x1FFF, "013b")
             binary = ( 
                 imm_bin[0] + 
                 imm_bin[2:8]+
@@ -148,4 +147,6 @@ def assemble(lines):
             )
             outputLines.append(binary)
 
-        return outputLines
+    return outputLines
+
+print(assemble(["beq zero,zero,0"]))
