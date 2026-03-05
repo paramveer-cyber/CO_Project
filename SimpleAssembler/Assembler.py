@@ -119,8 +119,21 @@ def assemble(lines):
         elif instr in B_type:
             funct3,opcode=B_type[instr]
 
-            rs1,rs2,imm_str=rest.split(",")
-            imm=int(imm_str,0)
+            try:
+                rs1,rs2,imm_str=rest.split(",")
+                imm=int(imm_str,0)
+
+            except:
+                outputLines.append("Invalid B-type format")
+                continue
+
+            if rs1 not in REGISTERS or rs2 not in REGISTERS:
+                outputLines.append("Unsupported register used!")
+                continue
+
+            if imm < -4096 or imm > 4094 or imm%2==1:
+                outputLines.append("Immediate out of B-type range space")
+                continue
 
             imm_bin = format(imm & 0xFFF, "012b")
             binary = ( 
