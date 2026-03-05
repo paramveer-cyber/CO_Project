@@ -3,13 +3,16 @@ REGISTERS = {"zero": 0, "ra": 1, "sp": 2, "gp": 3, "tp": 4,"t0": 5, "t1": 6, "t2
 for i in range(32):
     REGISTERS[f"x{i}"] = i
 
-COMMANDS = ["add", "sub", "sll", "slt", "sltu", "xor", "srl", "or", "and", "lw", "addi", "sltiu", "jalr", "sw","beq","bne","bge","bgeu","blt","bltu"]
+COMMANDS = ["add", "sub", "sll", "slt", "sltu", "xor", "srl", "or", "and", "lw", "addi", "sltiu", "jalr", "sw","beq","bne","bge","bgeu","blt","bltu","jal","lui","auipc"]
 
 R_TYPE = {"add":  ("0000000", "000"),"sub":  ("0100000", "000"),"sll":  ("0000000", "001"),"slt":  ("0000000", "010"),"sltu": ("0000000", "011"),"xor":  ("0000000", "100"),"srl":  ("0000000", "101"),"or": ("0000000", "110"),"and": ("0000000", "111")}
 
 I_TYPE = {"lw": ("010","0000011"), "addi": ("000", "0010011"), "sltiu": ("011","0010011"), "jalr": ("000", "1100111")}
 
 S_TYPE = {"sw": ("010", "0100011")}
+
+B_type={"beq":("000","1100011"),"bne":("001","1100011"),"bge":("100","1100011"),"bgeu":("101","1100011"),"blt":("110","1100011"),"bltu":("111","1100011")}
+
 
 def reg_to_bin(reg):
     return format(REGISTERS[reg], "05b")
@@ -46,6 +49,8 @@ def assemble(lines):
         elif instr in S_TYPE:
             funct3, opcode = S_TYPE[instr]
             try:
+            rs1,rs2,imm_str=rest.split(",")
+            imm=int(imm_str,0)
                 rs2, addr_part = rest.split(",")
                 imm_str, rs1 = addr_part.strip().replace(")", "").split("(")
                 rs1 = rs1.strip()
@@ -109,6 +114,25 @@ def assemble(lines):
                 opcode
             )
 
+            outputLines.append(binary)
+
+        elif instr in B_type:
+            funct3,opcode=B_type[instr]
+
+            rs1,rs2,imm_str=rest.split(",")
+            imm=int(imm_str,0)
+
+            imm_bin = format(imm & 0xFFF, "012b")
+            binary = ( 
+                imm_bin[0] + 
+                imm_bin[2:8]+
+                reg_to_bin(rs2.strip()) +
+                reg_to_bin(rs1.strip()) +
+                funct3 +
+                imm_bin[8:12]+
+                imm_bin[1]+
+                opcode
+            )
             outputLines.append(binary)
 
         return outputLines
