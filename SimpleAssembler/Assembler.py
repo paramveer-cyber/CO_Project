@@ -151,26 +151,35 @@ def assemble(lines):
             outputLines.append(binary)
 
         elif instr in J_type:
-            opcode = J_type[instr]
+            opcode=J_type[instr]
 
-            rd, imm_str = [x.strip() for x in rest.split(",")]
-            imm = int(imm_str,0)
+            try:
+                rd,imm_str=rest.split(",")
+                imm=int(imm_str)
 
-            if imm < -1048576 or imm > 1048574:
-                outputLines.append("Immediate out of J-type range")
+            except:
+                outputLines.append("Invalid J-type format")
+                continue
+
+            rd=rd.strip()
+
+            if rd not in REGISTERS:
+                outputLines.append("Unsupported register used!")
+                continue
+            
+            if imm<-1048576 or imm>1048574:
+                outputLines.append("Immediate out of J-type range space")
                 continue
 
             imm_bin = format(imm & 0x1FFFFF, "021b")
-
-            binary = (
-                imm_bin[0] +
-                imm_bin[10:20] +
-                imm_bin[9] +
-                imm_bin[1:9] +
-                reg_to_bin(rd) +
+            binary = ( 
+                imm_bin[0] + 
+                imm_bin[10:20]+
+                imm_bin[9]+
+                imm_bin[1:9]+
+                reg_to_bin(rd.strip()) +
                 opcode
             )
-
             outputLines.append(binary)
 
     return outputLines
