@@ -110,3 +110,5 @@ def assemble(lines):
             )
 
             outputLines.append(binary)
+
+        return outputLines
