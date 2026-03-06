@@ -15,6 +15,8 @@ B_type={"beq":("000","1100011"),"bne":("001","1100011"),"blt":("100","1100011"),
 
 J_type={"jal":("1101111")}
 
+U_type={"lui":("0110111"),"auipc":("0010111")}  
+
 
 def reg_to_bin(reg):
     return format(REGISTERS[reg], "05b")
@@ -177,6 +179,36 @@ def assemble(lines):
                 imm_bin[10:20]+
                 imm_bin[9]+
                 imm_bin[1:9]+
+                reg_to_bin(rd.strip()) +
+                opcode
+            )
+            outputLines.append(binary)
+
+        elif instr in U_type:
+            opcode=U_type[instr]
+
+            try:
+                rd,imm_str=rest.split(",")
+                imm=int(imm_str,0)
+
+            except:
+                outputLines.append("Invalid U-type format")
+                continue
+
+            rd=rd.strip()
+
+            if rd not in REGISTERS:
+                outputLines.append("Unsupported register used!")
+                continue
+            
+            if imm<0 or imm>1048575:
+                outputLines.append("Immediate out of U-type range space")
+                continue
+            
+
+            imm_bin = format(imm & 0xFFFFF, "020b")
+            binary = ( 
+                imm_bin + 
                 reg_to_bin(rd.strip()) +
                 opcode
             )
