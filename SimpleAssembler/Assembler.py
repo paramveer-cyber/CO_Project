@@ -23,17 +23,35 @@ def reg_to_bin(reg):
 
 def assemble(lines):
     outputLines = []
+    label={}
+    address=0
+    pcCounter=0
+
+    for i in range(len(lines)):
+        line = lines[i].strip()
+        if not lines[i]:
+            continue
+
+        firstSep=lines[i].split(maxsplit=1)
+        if (firstSep[0].strip()).endswith(":"):
+            label[firstSep[0].strip()]=address
+            if len(firstSep)==1:
+                lines[i]=""
+                continue
+            lines[i]=firstSep[-1].strip()
+            
+        address+=4
 
     for line in lines:
         line = line.strip()
         if not line:
             continue
         
-        firstSeparation = line.split(maxsplit=1)
-        if len(firstSeparation) != 2:
+        finalSeparation = line.split(maxsplit=1)
+        if len(finalSeparation) != 2:
             print("Invalid Input Format!")
             continue
-        instr, rest = firstSeparation
+        instr, rest = finalSeparation
         
         if instr not in COMMANDS:
             print(f"Unsupported instruction: {instr}")
@@ -53,7 +71,7 @@ def assemble(lines):
         elif instr in S_TYPE:
             funct3, opcode = S_TYPE[instr]
             try:
-                rs2, addr_part = rest.split(",")
+                rs2, addr_part = [x.strip() for x in rest.split(",")]
                 rs2 = rs2.strip()
 
                 imm_str, rs1 = addr_part.strip().replace(")", "").split("(")
@@ -88,13 +106,13 @@ def assemble(lines):
 
             try:
                 if instr == "lw":
-                    rd, addr_part = rest.split(",")
+                    rd, addr_part = [x.strip() for x in rest.split(",")]
                     imm_str, rs1 = addr_part.strip().replace(")", "").split("(")
                     rs1 = rs1.strip()
                     imm = int(imm_str, 0)
 
                 else:
-                    rd, rs1, imm_str = rest.split(",")
+                    rd, rs1, imm_str = [x.strip() for x in rest.split(",")]
                     imm = int(imm_str.strip(), 0)
 
             except:
@@ -124,12 +142,21 @@ def assemble(lines):
             funct3,opcode=B_type[instr]
 
             try:
-                rs1,rs2,imm_str=rest.split(",")
-                imm=int(imm_str,0)
+                rs1,rs2,imm_str=[x.strip() for x in rest.split(",")]
+                imm=int(imm_str)
 
+            except ValueError:
+                try:
+                    imm=label[imm_str.strip()+":"]-pcCounter
+                except KeyError:
+                    outputLines.append("Invalid label")
+                    continue
+            
             except:
                 outputLines.append("Invalid B-type format")
                 continue
+
+
 
             if rs1 not in REGISTERS or rs2 not in REGISTERS:
                 outputLines.append("Unsupported register used!")
@@ -138,6 +165,7 @@ def assemble(lines):
             if imm < -4096 or imm > 4094 or imm%2==1:
                 outputLines.append("Immediate out of B-type range space")
                 continue
+
 
             imm_bin = format(imm & 0x1FFF, "013b")
             binary = ( 
@@ -156,14 +184,21 @@ def assemble(lines):
             opcode=J_type[instr]
 
             try:
-                rd,imm_str=rest.split(",")
+                rd,imm_str=[x.strip() for x in rest.split(",")]
                 imm=int(imm_str)
+
+
+            except ValueError:
+                try:
+                    imm=label[imm_str.strip()+":"]-pcCounter
+                except KeyError:
+                    outputLines.append("Invalid label")
+                    continue
 
             except:
                 outputLines.append("Invalid J-type format")
                 continue
 
-            rd=rd.strip()
 
             if rd not in REGISTERS:
                 outputLines.append("Unsupported register used!")
@@ -184,11 +219,12 @@ def assemble(lines):
             )
             outputLines.append(binary)
 
+
         elif instr in U_type:
             opcode=U_type[instr]
 
             try:
-                rd,imm_str=rest.split(",")
+                rd,imm_str=[x.strip() for x in rest.split(",")]
                 imm=int(imm_str,0)
 
             except:
@@ -213,6 +249,7 @@ def assemble(lines):
                 opcode
             )
             outputLines.append(binary)
+        pcCounter+=4
 
     return outputLines
 
