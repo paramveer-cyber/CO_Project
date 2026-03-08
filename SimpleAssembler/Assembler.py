@@ -17,7 +17,6 @@ J_type={"jal":("1101111")}
 
 U_type={"lui":("0110111"),"auipc":("0010111")}  
 
-
 def reg_to_bin(reg):
     return format(REGISTERS[reg], "05b")
 
@@ -27,42 +26,68 @@ def assemble(lines):
     address=0
     pcCounter=0
 
+    processed_lines=[]
+
     for i in range(len(lines)):
         line = lines[i].strip()
         if not lines[i]:
             continue
 
         firstSep=lines[i].split(maxsplit=1)
-        if (firstSep[0].strip()).endswith(":"):
-            label[firstSep[0].strip()[:-1]]=address
-            if len(firstSep)==1:
-                lines[i]=""
+        if firstSep[0].endswith(":"):
+            label_name=firstSep[0]
+
+            if not label_name[0].isalpha():
+                print(f"Error at line {i+1}: Invalid label name")
+                outputLines.append(f"Error at line {i+1}: Invalid label name")
                 continue
-            lines[i]=firstSep[-1].strip()
-            
+
+            label[label_name]=address
+
+            if len(firstSep)==1:
+                continue
+
+            line=firstSep[-1].strip()
+
+        processed_lines.append((line,i+1))
         address+=4
 
-    for line in lines:
+    halt_found = False
+    for line,_ in processed_lines:
+        if line.replace(" ","") == "beqzero,zero,0":
+            halt_found = True
+            break
+
+    if not halt_found:
+        print("Error: Missing Virtual Halt instruction")
+        return ["Error: Missing Virtual Halt instruction"]
+
+
+    for line,lineno in processed_lines:
         line = line.strip()
         if not line:
             continue
-        
+
+
         finalSeparation = line.split(maxsplit=1)
         if len(finalSeparation) != 2:
-            print("Invalid Input Format!")
+            print(f"Error at line {lineno}: Invalid Input Format!")
+            outputLines.append(f"Error at line {lineno}: Invalid Input Format!")
             continue
         instr, rest = finalSeparation
         
         if instr not in COMMANDS:
-            print(f"Unsupported instruction: {instr}")
-            outputLines.append(f"Unsupported instruction: {instr}")
+            print(f"Error at line {lineno}: Unsupported instruction")
+            outputLines.append(f"Error at line {lineno}: Unsupported instruction")
             continue
 
         if instr in R_TYPE:
             rd, rs1, rs2 = [x.strip() for x in rest.split(",")]
+
+            
             if rd not in REGISTERS or rs1 not in REGISTERS or rs2 not in REGISTERS:
-                print("Unsupported register used!")
-                outputLines.append("Unsupported register used!")
+                print(f"Error at line {lineno}: Unsupported register used")
+                outputLines.append(f"Error at line {lineno}: Unsupported register used")
                 continue
             funct7, funct3 = R_TYPE[instr]
             binary = (funct7 + reg_to_bin(rs2) + reg_to_bin(rs1) + funct3 + reg_to_bin(rd) + "0110011")
@@ -72,22 +97,26 @@ def assemble(lines):
             funct3, opcode = S_TYPE[instr]
             try:
                 rs2, addr_part = [x.strip() for x in rest.split(",")]
-                rs2 = rs2.strip()
-
                 imm_str, rs1 = addr_part.strip().replace(")", "").split("(")
-                rs1 = rs1.strip()
-                imm = int(imm_str,0)
+                imm = int(imm_str)
             except:
-                outputLines.append("Invalid S-type format")
+                print(f"Error at line {lineno}: Invalid S-type format")
+                outputLines.append(f"Error at line {lineno}: Invalid S-type format")
                 continue
 
+            rs1=rs1.strip()
+
             if rs1 not in REGISTERS or rs2 not in REGISTERS:
-                outputLines.append("Unsupported register used!")
+                print(f"Error at line {lineno}: Unsupported register used")
+                outputLines.append(f"Error at line {lineno}: Unsupported register used")
                 continue
 
             if imm < -2048 or imm > 2047:
-                outputLines.append("Immediate out of 12-bit signed range")
+                print(f"Error at line {lineno}: Immediate out of 12-bit signed range")
+                outputLines.append(f"Error at line {lineno}: Immediate out of 12-bit signed range")
                 continue
+
+
 
             imm_bin = format(imm & 0b111111111111, "012b") 
             binary = (
@@ -116,15 +145,19 @@ def assemble(lines):
                     imm = int(imm_str.strip(), 0)
 
             except:
-                outputLines.append("Invalid I-type format")
+                print(f"Error at line {lineno}: Invalid I-type format")
+                outputLines.append(f"Error at line {lineno}: Invalid I-type format")
                 continue
+            
 
             if rd not in REGISTERS or rs1 not in REGISTERS:
-                outputLines.append("Unsupported register used!")
+                print(f"Error at line {lineno}: Unsupported register used")
+                outputLines.append(f"Error at line {lineno}: Unsupported register used")
                 continue
 
             if imm < -2048 or imm > 2047:
-                outputLines.append("Immediate out of 12-bit signed range")
+                print(f"Error at line {lineno}: Immediate out of 12-bit signed range")
+                outputLines.append(f"Error at line {lineno}: Immediate out of 12-bit signed range")
                 continue
 
             imm_bin = format(imm & 0xFFF, "012b")
@@ -147,23 +180,26 @@ def assemble(lines):
 
             except ValueError:
                 try:
-                    imm=label[imm_str.strip()]-pcCounter
+                    imm=label[imm_str.strip()+":"]-pcCounter
                 except KeyError:
-                    outputLines.append("Invalid label")
+                    print(f"Error at line {lineno}: Invalid label")
+                    outputLines.append(f"Error at line {lineno}: Invalid label")
                     continue
             
             except:
-                outputLines.append("Invalid B-type format")
+                print(f"Error at line {lineno}: Invalid B-type format")
+                outputLines.append(f"Error at line {lineno}: Invalid B-type format")
                 continue
-
 
 
             if rs1 not in REGISTERS or rs2 not in REGISTERS:
-                outputLines.append("Unsupported register used!")
+                print(f"Error at line {lineno}: Unsupported register used")
+                outputLines.append(f"Error at line {lineno}: Unsupported register used")
                 continue
 
             if imm < -4096 or imm > 4094 or imm%2==1:
-                outputLines.append("Immediate out of B-type range space")
+                print(f"Error at line {lineno}: Immediate out of B-type range")
+                outputLines.append(f"Error at line {lineno}: Immediate out of B-type range")
                 continue
 
 
@@ -171,8 +207,8 @@ def assemble(lines):
             binary = ( 
                 imm_bin[0] + 
                 imm_bin[2:8]+
-                reg_to_bin(rs2.strip()) +
-                reg_to_bin(rs1.strip()) +
+                reg_to_bin(rs2) +
+                reg_to_bin(rs1) +
                 funct3 +
                 imm_bin[8:12]+
                 imm_bin[1]+
@@ -190,22 +226,26 @@ def assemble(lines):
 
             except ValueError:
                 try:
-                    imm=label[imm_str.strip()]-pcCounter
+                    imm=label[imm_str.strip()+":"]-pcCounter
                 except KeyError:
-                    outputLines.append("Invalid label")
+                    print(f"Error at line {lineno}: Invalid label")
+                    outputLines.append(f"Error at line {lineno}: Invalid label")
                     continue
 
             except:
-                outputLines.append("Invalid J-type format")
+                print(f"Error at line {lineno}: Invalid J-type format")
+                outputLines.append(f"Error at line {lineno}: Invalid J-type format")
                 continue
 
 
             if rd not in REGISTERS:
-                outputLines.append("Unsupported register used!")
+                print(f"Error at line {lineno}: Unsupported register used")
+                outputLines.append(f"Error at line {lineno}: Unsupported register used")
                 continue
             
             if imm<-1048576 or imm>1048574:
-                outputLines.append("Immediate out of J-type range space")
+                print(f"Error at line {lineno}: Immediate out of J-type range")
+                outputLines.append(f"Error at line {lineno}: Immediate out of J-type range")
                 continue
 
             imm_bin = format(imm & 0x1FFFFF, "021b")
@@ -214,12 +254,12 @@ def assemble(lines):
                 imm_bin[10:20]+
                 imm_bin[9]+
                 imm_bin[1:9]+
-                reg_to_bin(rd.strip()) +
+                reg_to_bin(rd) +
                 opcode
             )
             outputLines.append(binary)
 
-
+                
         elif instr in U_type:
             opcode=U_type[instr]
 
@@ -228,29 +268,31 @@ def assemble(lines):
                 imm=int(imm_str,0)
 
             except:
-                outputLines.append("Invalid U-type format")
+                print(f"Error at line {lineno}: Invalid U-type format")
+                outputLines.append(f"Error at line {lineno}: Invalid U-type format")
                 continue
 
-            rd=rd.strip()
 
             if rd not in REGISTERS:
-                outputLines.append("Unsupported register used!")
+                print(f"Error at line {lineno}: Unsupported register used")
+                outputLines.append(f"Error at line {lineno}: Unsupported register used")
                 continue
             
             if imm<0 or imm>1048575:
-                outputLines.append("Immediate out of U-type range space")
+                print(f"Error at line {lineno}: Immediate out of U-type range")
+                outputLines.append(f"Error at line {lineno}: Immediate out of U-type range")
                 continue
             
 
             imm_bin = format(imm & 0xFFFFF, "020b")
             binary = ( 
                 imm_bin + 
-                reg_to_bin(rd.strip()) +
+                reg_to_bin(rd) +
                 opcode
             )
             outputLines.append(binary)
         pcCounter+=4
+        
 
     return outputLines
 
-print(assemble(["beq zero,zero,0"]))
