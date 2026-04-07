@@ -19,7 +19,60 @@ def instructionFetch(linesToRead, PC):
 
     return instruction
 
+def decode(instruction):    
+    instruction = instruction.strip()
+    if len(instruction) != 32:
+        print("Invalid instruction length")
+        exit(1)
+
+    opcode = instruction[25:32]
     
+    decoded = {"opcode": opcode}
+
+    if opcode == "0110011":
+        decoded["type"] = "R"
+        decoded["funct7"] = instruction[0:7]
+        decoded["rs2"] = int(instruction[7:12], 2)
+        decoded["rs1"] = int(instruction[12:17], 2)
+        decoded["funct3"] = instruction[17:20]
+        decoded["rd"] = int(instruction[20:25], 2)
+
+        funct3 = decoded["funct3"]
+        funct7 = decoded["funct7"]
+
+        if funct3 == "000" and funct7 == "0000000":
+            decoded["working"] = "add"
+        elif funct3 == "000" and funct7 == "0100000":
+            decoded["working"] = "sub"
+        elif funct3 == "001":
+            decoded["working"] = "sll"
+        elif funct3 == "010":
+            decoded["working"] = "slt"
+        elif funct3 == "011":
+            decoded["working"] = "sltu"
+        elif funct3 == "100":
+            decoded["working"] = "xor"
+        elif funct3 == "101":
+            decoded["working"] = "srl"
+        elif funct3 == "110":
+            decoded["working"] = "or"
+        elif funct3 == "111":
+            decoded["working"] = "and"
+        else:
+            print("Invalid R-type instruction")
+            exit(1)
+
+    elif opcode == "0100011":
+        decoded["type"] = "S"
+        imm = instruction[0:7] + instruction[20:25]
+        decoded["imm"] = int(imm, 2)
+        decoded["rs2"] = int(instruction[7:12], 2)
+        decoded["rs1"] = int(instruction[12:17], 2)
+        decoded["funct3"] = instruction[17:20]
+
+        decoded["working"] = "sw"
+
+        
 def simulate(linesToExecute, outputFilename):
     PC = 0
 
