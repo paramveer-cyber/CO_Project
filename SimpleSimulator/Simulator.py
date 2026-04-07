@@ -71,6 +71,8 @@ def decode(instruction):
         decoded["funct3"] = instruction[17:20]
 
         decoded["working"] = "sw"
+    
+    return decoded
 
         
 def simulate(linesToExecute, outputFilename):
