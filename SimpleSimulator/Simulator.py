@@ -71,7 +71,7 @@ def decode(instruction):
         decoded["funct3"] = instruction[17:20]
 
         decoded["working"] = "sw"
-
+    
     elif opcode in ["0010011", "0000011", "1100111"]:
         decoded["type"] = "I"
         decoded["imm"] = int(instruction[0:12], 2)
@@ -92,7 +92,6 @@ def decode(instruction):
 
         elif opcode == "1100111":
             decoded["working"] = "jalr"
-            
 
     elif opcode in ["0110111", "0010111"]:
         decoded["type"] = "U"
@@ -103,6 +102,8 @@ def decode(instruction):
             decoded["working"] = "lui"
         else:
             decoded["working"] = "auipc"
+    
+    return decoded
 
         
 def simulate(linesToExecute, outputFilename):
@@ -130,3 +131,4 @@ if __name__ == "__main__":
         lines=f.readlines()
     lines = [line.strip() for line in lines]
     simulate(lines, output_file)
+
