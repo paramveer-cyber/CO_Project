@@ -4,7 +4,22 @@ registers = [0]*32
 memory = {} 
 registers[2] = 0b00000000000000000000000101111100
 
+def instructionFetch(linesToRead, PC):
+    if PC >= 0x00000100 or PC < 0x00000000:
+        print(f"Error Occured on line no. {PC//4+1} : Program Memory overflow!")
+        exit(1)
+    if PC//4 >= len(linesToRead):
+        print("Invalid instruction memory access")
+        exit(1)
+    if PC % 4 != 0:
+        print("Invalid PC alignment")
+        exit(1)
 
+    instruction = linesToRead[PC//4]
+
+    return instruction
+
+    
 def simulate(linesToExecute, outputFilename):
     PC = 0
 
