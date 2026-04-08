@@ -191,6 +191,42 @@ def execute(decoded, registers, PC):
         result["mem_address"] = addr
         result["mem_value"] = rs2
     
+    elif typ == "I":
+        rs1 = registers[decoded["rs1"]]
+        imm = sign_extend(decoded["imm"], 12)
+
+        if op == "addi":
+            val = rs1 + imm
+            result["rd"] = decoded["rd"]
+            result["value"] = val & 0xFFFFFFFF
+
+        elif op == "sltiu":
+            val = int((rs1 & 0xFFFFFFFF) < (imm & 0xFFFFFFFF))
+            result["rd"] = decoded["rd"]
+            result["value"] = val
+
+        elif op == "lw":
+            addr = rs1 + imm
+            result["mem_read"] = True
+            result["mem_address"] = addr
+            result["rd"] = decoded["rd"]
+
+        elif op == "jalr":
+            result["rd"] = decoded["rd"]
+            result["value"] = PC + 4
+            result["nextPC"] = (rs1 + imm) & ~1
+        
+    elif typ == "U":
+        imm = decoded["imm"] << 12
+
+        if op == "lui":
+            result["rd"] = decoded["rd"]
+            result["value"] = imm
+
+        elif op == "auipc":
+            result["rd"] = decoded["rd"]
+            result["value"] = PC + imm
+    
     return result
         
 def simulate(linesToExecute, outputFilename):
