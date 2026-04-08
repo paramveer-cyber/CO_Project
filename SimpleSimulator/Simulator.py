@@ -102,6 +102,41 @@ def decode(instruction):
             decoded["working"] = "lui"
         else:
             decoded["working"] = "auipc"
+
+    elif opcode == "1100011":
+        decoded["type"] = "B"
+        imm = instruction[0] + instruction[24] + instruction[1:7] + instruction[20:24] + "0"
+        decoded["imm"] = int(imm, 2)
+        decoded["rs2"] = int(instruction[7:12], 2)
+        decoded["rs1"] = int(instruction[12:17], 2)
+        decoded["funct3"] = instruction[17:20]
+
+        funct3 = decoded["funct3"]
+
+        if funct3 == "000":
+            decoded["working"] = "beq"
+        elif funct3 == "001":
+            decoded["working"] = "bne"
+        elif funct3 == "100":
+            decoded["working"] = "blt"
+        elif funct3 == "101":
+            decoded["working"] = "bge"
+        elif funct3 == "110":
+            decoded["working"] = "bltu"
+        elif funct3 == "111":
+            decoded["working"] = "bgeu"
+
+    elif opcode == "1101111":
+        decoded["type"] = "J"
+        imm = instruction[0] + instruction[12:20] + instruction[11] + instruction[1:11] + "0"
+        decoded["imm"] = int(imm, 2)
+        decoded["rd"] = int(instruction[20:25], 2)
+
+        decoded["working"] = "jal"
+
+    else:
+        print("Unknown opcode")
+        exit(1)
     
     return decoded
 
