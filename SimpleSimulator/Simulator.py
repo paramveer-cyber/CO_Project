@@ -140,6 +140,58 @@ def decode(instruction):
     
     return decoded
 
+def execute(decoded, registers, PC):
+    nextPC = PC+4
+    result = {
+        "rd": None,
+        "value": None,
+        "mem_write": False,
+        "mem_read": False,
+        "mem_address": None,
+        "mem_value": None,
+        "nextPC": nextPC
+    }
+
+    typ = decoded["type"]
+    op = decoded["working"]
+
+    if typ == "R":
+        rs1 = registers[decoded["rs1"]]
+        rs2 = registers[decoded["rs2"]]
+
+        if op == "add":
+            val = rs1 + rs2
+        elif op == "sub":
+            val = rs1 - rs2
+        elif op == "sll":
+            val = rs1 << (rs2 & 0x1F)
+        elif op == "slt":
+            val = int(rs1 < rs2)
+        elif op == "sltu":
+            val = int((rs1 & 0xFFFFFFFF) < (rs2 & 0xFFFFFFFF))
+        elif op == "xor":
+            val = rs1 ^ rs2
+        elif op == "srl":
+            val = (rs1 & 0xFFFFFFFF) >> (rs2 & 0x1F)
+        elif op == "or":
+            val = rs1 | rs2
+        elif op == "and":
+            val = rs1 & rs2
+
+        result["rd"] = decoded["rd"]
+        result["value"] = val & 0xFFFFFFFF
+
+    elif typ == "S":
+        rs1 = registers[decoded["rs1"]]
+        rs2 = registers[decoded["rs2"]]
+        imm = sign_extend(decoded["imm"], 12)
+
+        addr = rs1 + imm
+        result["mem_write"] = True
+        result["mem_address"] = addr
+        result["mem_value"] = rs2
+    
+    return result
         
 def simulate(linesToExecute, outputFilename):
     PC = 0
