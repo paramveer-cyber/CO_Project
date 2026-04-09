@@ -4,6 +4,11 @@ registers = [0]*32
 memory = {} 
 registers[2] = 0b00000000000000000000000101111100
 
+def sign_extend(value, bits):
+    if (value >> (bits - 1)) & 1:
+        return value - (1 << bits)
+    return value
+
 def instructionFetch(linesToRead, PC):
     if PC >= 0x00000100 or PC < 0x00000000:
         print(f"Error Occured on line no. {PC//4+1} : Program Memory overflow!")
