@@ -263,6 +263,20 @@ def execute(decoded, registers, PC):
         result["nextPC"] = PC + imm
     
     return result
+
+def memoryAccess(res):
+    if res["mem_read"] or res["mem_write"]:
+        addr = res["mem_address"]
+
+        if not (((0x100 <= addr <= 0x17F) or (0x10000 <= addr <= 0x1007F)) and addr % 4 == 0):
+            print("Invalid memory access", addr)
+            exit(1)
+
+    if res["mem_read"]:
+        res["value"] = memory.get(addr, 0) & 0xFFFFFFFF
+
+    elif res["mem_write"]:
+        memory[addr] = res["mem_value"]
         
 def simulate(linesToExecute, outputFilename):
     PC = 0
