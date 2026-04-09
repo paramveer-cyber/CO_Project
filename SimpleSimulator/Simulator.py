@@ -184,7 +184,7 @@ def execute(decoded, registers, PC):
     elif typ == "S":
         rs1 = registers[decoded["rs1"]]
         rs2 = registers[decoded["rs2"]]
-        imm = sign_extend(decoded["imm"], 12)
+        # imm = sign_extend(decoded["imm"], 12)
 
         addr = rs1 + imm
         result["mem_write"] = True
@@ -193,7 +193,7 @@ def execute(decoded, registers, PC):
     
     elif typ == "I":
         rs1 = registers[decoded["rs1"]]
-        imm = sign_extend(decoded["imm"], 12)
+        # imm = sign_extend(decoded["imm"], 12)
 
         if op == "addi":
             val = rs1 + imm
