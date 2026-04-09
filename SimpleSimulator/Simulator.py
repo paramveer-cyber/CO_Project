@@ -277,6 +277,14 @@ def memoryAccess(res):
 
     elif res["mem_write"]:
         memory[addr] = res["mem_value"]
+
+
+def writeBack(res, registers):
+    if res["rd"] is not None and res["rd"] != 0:
+        registers[res["rd"]] = res["value"]
+
+    registers[0] = 0      
+    
         
 def simulate(linesToExecute, outputFilename):
     PC = 0
