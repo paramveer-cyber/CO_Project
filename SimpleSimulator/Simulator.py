@@ -24,7 +24,7 @@ def instructionFetch(linesToRead, PC):
 
     return instruction
 
-def decode(instruction):    
+def decode(instruction):
     instruction = instruction.strip()
     if len(instruction) != 32:
         print("Invalid instruction length")
@@ -67,16 +67,6 @@ def decode(instruction):
             print("Invalid R-type instruction")
             exit(1)
 
-    elif opcode == "0100011":
-        decoded["type"] = "S"
-        imm = instruction[0:7] + instruction[20:25]
-        decoded["imm"] = int(imm, 2)
-        decoded["rs2"] = int(instruction[7:12], 2)
-        decoded["rs1"] = int(instruction[12:17], 2)
-        decoded["funct3"] = instruction[17:20]
-
-        decoded["working"] = "sw"
-    
     elif opcode in ["0010011", "0000011", "1100111"]:
         decoded["type"] = "I"
         decoded["imm"] = int(instruction[0:12], 2)
@@ -98,15 +88,15 @@ def decode(instruction):
         elif opcode == "1100111":
             decoded["working"] = "jalr"
 
-    elif opcode in ["0110111", "0010111"]:
-        decoded["type"] = "U"
-        decoded["imm"] = int(instruction[0:20], 2)
-        decoded["rd"] = int(instruction[20:25], 2)
+    elif opcode == "0100011":
+        decoded["type"] = "S"
+        imm = instruction[0:7] + instruction[20:25]
+        decoded["imm"] = int(imm, 2)
+        decoded["rs2"] = int(instruction[7:12], 2)
+        decoded["rs1"] = int(instruction[12:17], 2)
+        decoded["funct3"] = instruction[17:20]
 
-        if opcode == "0110111":
-            decoded["working"] = "lui"
-        else:
-            decoded["working"] = "auipc"
+        decoded["working"] = "sw"
 
     elif opcode == "1100011":
         decoded["type"] = "B"
@@ -131,6 +121,16 @@ def decode(instruction):
         elif funct3 == "111":
             decoded["working"] = "bgeu"
 
+    elif opcode in ["0110111", "0010111"]:
+        decoded["type"] = "U"
+        decoded["imm"] = int(instruction[0:20], 2)
+        decoded["rd"] = int(instruction[20:25], 2)
+
+        if opcode == "0110111":
+            decoded["working"] = "lui"
+        else:
+            decoded["working"] = "auipc"
+
     elif opcode == "1101111":
         decoded["type"] = "J"
         imm = instruction[0] + instruction[12:20] + instruction[11] + instruction[1:11] + "0"
@@ -142,7 +142,7 @@ def decode(instruction):
     else:
         print("Unknown opcode")
         exit(1)
-    
+
     return decoded
 
 def execute(decoded, registers, PC):
@@ -186,16 +186,6 @@ def execute(decoded, registers, PC):
         result["rd"] = decoded["rd"]
         result["value"] = val & 0xFFFFFFFF
 
-    elif typ == "S":
-        rs1 = registers[decoded["rs1"]]
-        rs2 = registers[decoded["rs2"]]
-        imm = sign_extend(decoded["imm"], 12)
-
-        addr = rs1 + imm
-        result["mem_write"] = True
-        result["mem_address"] = addr
-        result["mem_value"] = rs2
-    
     elif typ == "I":
         rs1 = registers[decoded["rs1"]]
         imm = sign_extend(decoded["imm"], 12)
@@ -220,17 +210,16 @@ def execute(decoded, registers, PC):
             result["rd"] = decoded["rd"]
             result["value"] = PC + 4
             result["nextPC"] = (rs1 + imm) & ~1
-        
-    elif typ == "U":
-        imm = decoded["imm"] << 12
 
-        if op == "lui":
-            result["rd"] = decoded["rd"]
-            result["value"] = imm
+    elif typ == "S":
+        rs1 = registers[decoded["rs1"]]
+        rs2 = registers[decoded["rs2"]]
+        imm = sign_extend(decoded["imm"], 12)
 
-        elif op == "auipc":
-            result["rd"] = decoded["rd"]
-            result["value"] = PC + imm
+        addr = rs1 + imm
+        result["mem_write"] = True
+        result["mem_address"] = addr
+        result["mem_value"] = rs2
 
     elif typ == "B":
         rs1 = registers[decoded["rs1"]]
@@ -254,14 +243,25 @@ def execute(decoded, registers, PC):
 
         if take:
             result["nextPC"] = PC + imm
-    
+
+    elif typ == "U":
+        imm = decoded["imm"] << 12
+
+        if op == "lui":
+            result["rd"] = decoded["rd"]
+            result["value"] = imm
+
+        elif op == "auipc":
+            result["rd"] = decoded["rd"]
+            result["value"] = PC + imm
+
     elif typ == "J":
         imm = sign_extend(decoded["imm"], 21)
 
         result["rd"] = decoded["rd"]
         result["value"] = PC + 4
         result["nextPC"] = PC + imm
-    
+
     return result
 
 def memoryAccess(res):
@@ -277,32 +277,47 @@ def memoryAccess(res):
 
     elif res["mem_write"]:
         memory[addr] = res["mem_value"]
-
-
+    
 def writeBack(res, registers):
     if res["rd"] is not None and res["rd"] != 0:
         registers[res["rd"]] = res["value"]
 
-    registers[0] = 0      
-    
-        
+    registers[0] = 0  
+
 def simulate(linesToExecute, outputFilename):
     PC = 0
 
-    # with open(outputFilename, "w") as f:
-        # while True:
-            # instruction = instructionFetch(linesToExecute, PC)
+    with open(outputFilename, "w") as f:
+        while True:
+            instruction = instructionFetch(linesToExecute, PC)
 
-            
-            # decodedInstruction = decode(instruction)
-            # executedValues = execute(decodedInstruction, registers, PC)
+            if instruction == "00000000000000000000000001100011":
+                line = f"0b{format(PC, '032b')}"
+                for reg in registers:
+                    line += " 0b" + format(reg & 0xFFFFFFFF, '032b')
+                f.write(line + "\n")
+                break
 
-            # memoryAccess(executedValues)
-            # writeBack(executedValues, registers)
+            decodedInstruction = decode(instruction)
+            executedValues = execute(decodedInstruction, registers, PC)
+
+            memoryAccess(executedValues)
+            writeBack(executedValues, registers)
+
+            PC = executedValues["nextPC"]
+            line = f"0b{format(PC, '032b')}"
+            for reg in registers:
+                line += " 0b" + format(reg & 0xFFFFFFFF, '032b')
+            f.write(line + "\n")
 
 
+        base_addr = 0x00010000
 
+        for i in range(32):
+            addr = base_addr + i*4
+            val = memory.get(addr, 0)
 
+            f.write(f"0x{addr:08X}:0b{format(val & 0xFFFFFFFF, '032b')}\n")
 
 if __name__ == "__main__":
     input_file=sys.argv[1]
