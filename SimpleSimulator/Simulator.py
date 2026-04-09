@@ -184,7 +184,7 @@ def execute(decoded, registers, PC):
     elif typ == "S":
         rs1 = registers[decoded["rs1"]]
         rs2 = registers[decoded["rs2"]]
-        # imm = sign_extend(decoded["imm"], 12)
+        imm = sign_extend(decoded["imm"], 12)
 
         addr = rs1 + imm
         result["mem_write"] = True
@@ -193,7 +193,7 @@ def execute(decoded, registers, PC):
     
     elif typ == "I":
         rs1 = registers[decoded["rs1"]]
-        # imm = sign_extend(decoded["imm"], 12)
+        imm = sign_extend(decoded["imm"], 12)
 
         if op == "addi":
             val = rs1 + imm
@@ -226,6 +226,36 @@ def execute(decoded, registers, PC):
         elif op == "auipc":
             result["rd"] = decoded["rd"]
             result["value"] = PC + imm
+
+    elif typ == "B":
+        rs1 = registers[decoded["rs1"]]
+        rs2 = registers[decoded["rs2"]]
+        imm = sign_extend(decoded["imm"], 13)
+
+        take = False
+
+        if op == "beq":
+            take = (rs1 == rs2)
+        elif op == "bne":
+            take = (rs1 != rs2)
+        elif op == "blt":
+            take = (rs1 < rs2)
+        elif op == "bge":
+            take = (rs1 >= rs2)
+        elif op == "bltu":
+            take = ((rs1 & 0xFFFFFFFF) < (rs2 & 0xFFFFFFFF))
+        elif op == "bgeu":
+            take = ((rs1 & 0xFFFFFFFF) >= (rs2 & 0xFFFFFFFF))
+
+        if take:
+            result["nextPC"] = PC + imm
+    
+    elif typ == "J":
+        imm = sign_extend(decoded["imm"], 21)
+
+        result["rd"] = decoded["rd"]
+        result["value"] = PC + 4
+        result["nextPC"] = PC + imm
     
     return result
         
