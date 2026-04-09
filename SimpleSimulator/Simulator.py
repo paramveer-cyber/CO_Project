@@ -280,6 +280,10 @@ def simulate(linesToExecute, outputFilename):
             instruction = instructionFetch(linesToExecute, PC)
 
             if instruction == "00000000000000000000000001100011":
+                line = f"0b{format(PC, '032b')}"
+                for reg in registers:
+                    line += " 0b" + format(reg & 0xFFFFFFFF, '032b')
+                f.write(line + "\n")
                 break
 
             decodedInstruction = decode(instruction, PC)
@@ -289,13 +293,24 @@ def simulate(linesToExecute, outputFilename):
             writeBack(executedValues, registers)
 
             PC = executedValues["nextPC"]
+            line = f"0b{format(PC, '032b')}"
+            for reg in registers:
+                line += " 0b" + format(reg & 0xFFFFFFFF, '032b')
+            f.write(line + "\n")
+
+
+        base_addr = 0x00010000
+
+        for i in range(32):
+            addr = base_addr + i*4
+            val = memory.get(addr, 0)
+
+            f.write(f"0x{addr:08X}:0b{format(val & 0xFFFFFFFF, '032b')}\n")
 
 if __name__ == "__main__":
     input_file=sys.argv[1]
     output_file=sys.argv[2]
-
     with open(input_file,"r") as f:
         lines=f.readlines()
-
     lines = [line.strip() for line in lines]
     simulate(lines, output_file)
